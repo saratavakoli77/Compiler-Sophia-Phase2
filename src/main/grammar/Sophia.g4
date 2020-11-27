@@ -38,11 +38,11 @@ methodArguments: (variableWithType (COMMA variableWithType)*)?;
 
 variableWithType: identifier COLON type;
 
-type
-    : primitiveDataType | 
-    listType | 
-    functionPointerType | 
-    classType;
+type returns [Type t]
+    : primitiveDataType { $t = $primitiveDataType.t; } | 
+    listType { $t = $listType.t; } | 
+    functionPointerType { $t = $functionPointerType.t; } | 
+    classType { $t = $classType.t; };
 
 classType returns[ClassType ct]
     : identifier { $ct = identifier.id; };
@@ -55,7 +55,9 @@ listItemType: variableWithType | type;
 
 functionPointerType: FUNC LESS_THAN (VOID | typesWithComma) ARROW (VOID | type) GREATER_THAN;
 
-typesWithComma: type (COMMA type)*;
+typesWithComma returns [ArrayList<Type> ts]
+    : { $ts = new ArrayList<type>(); }
+    type { $ts.add(type.t); } (COMMA type { $ts.add(type.t); } )*;
 
 primitiveDataType returns[Type t]
     : 
@@ -65,13 +67,30 @@ primitiveDataType returns[Type t]
 
 methodBody: (varDeclaration)* (statement)*;
 
-statement: forStatement | foreachStatement | ifStatement | assignmentStatement | printStatement | continueBreakStatement | methodCallStatement | returnStatement | block;
+statement [Statement stmt]
+    : 
+    forStatement { $stmt = $forStatement.stmt; } | 
+    foreachStatement { $stmt = $foreachStatement.stmt; } | 
+    ifStatement { $stmt = $ifStatement.stmt; } | 
+    assignmentStatement { $stmt = $assignmentStatement.stmt; } | 
+    printStatement { $stmt = $printStatement.stmt; } | 
+    continueBreakStatement { $stmt = $continueBreakStatement.stmt; } | 
+    methodCallStatement { $stmt = $methodCallStatement.stmt; } | 
+    returnStatement { $stmt = $returnStatement.stmt; } | 
+    block { $stmt = $block.stmt; } ;
 
-block: LBRACE (statement)* RBRACE;
+block [BlockStmt stmt]
+    :
+    LBRACE { $stmt = new BlockStmt(); $stmt.setLine($LBRACE.getLine()); } 
+    (statement { $stmt.add($statement.stmt); } )* 
+    RBRACE;
 
-assignmentStatement: assignment SEMICOLLON;
+assignmentStatement [AssignmentStatement stmt]
+    : assignment SEMICOLLON
+    { $stmt = new AssignmentStatement($assignment.lVal, $assignment.rVal); $stmt.setLine($assignment.line); };
 
-assignment: orExpression ASSIGN expression;
+assignment [Expression lVal, Expression rVal, int line]
+    : orExpression ASSIGN expression { $line = getLine };
 
 printStatement [PrintStmt stmt]
     : 
