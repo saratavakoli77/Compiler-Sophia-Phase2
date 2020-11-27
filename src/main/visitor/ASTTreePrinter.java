@@ -28,7 +28,37 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(ClassDeclaration classDeclaration) {
-        //Todo
+        System.out.println(classDeclaration.toString());
+
+        Identifier className = classDeclaration.getClassName();
+        if (className != null) {
+            className.accept(this);
+        }
+
+        Identifier parentClassName = classDeclaration.getParentClassName();
+        if (parentClassName != null) {
+            parentClassName.accept(this);
+        }
+
+        ArrayList<FieldDeclaration> fields = classDeclaration.getFields();
+        if (fields != null) {
+            for (FieldDeclaration field : fields) {
+                field.accept(this);
+            }
+        }
+
+        ConstructorDeclaration constructor = classDeclaration.getConstructor();
+        if (constructor != null){
+            constructor.accept(this);
+        }
+
+        ArrayList<MethodDeclaration> methods = classDeclaration.getMethods();
+        if (methods != null) {
+            for (MethodDeclaration method : methods) {
+                method.accept(this);
+            }
+        }
+
         return null;
     }
 
@@ -40,7 +70,39 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(MethodDeclaration methodDeclaration) {
-        //Todo
+        System.out.println(methodDeclaration.toString());
+
+        Type returnType = methodDeclaration.getReturnType();
+        if (returnType != null) {
+            returnType.accept(this);
+        }
+
+        Identifier methodName = methodDeclaration.getMethodName();
+        if (methodName != null) {
+            methodName.accept(this);
+        }
+
+        ArrayList<VarDeclaration> args = methodDeclaration.getArgs();
+        if (args != null) {
+            for (VarDeclaration arg : args) {
+                arg.accept(this);
+            }
+        }
+
+        ArrayList<VarDeclaration> localVars = methodDeclaration.getLocalVars();
+        if (localVars != null) {
+            for (VarDeclaration localVar : localVars) {
+                localVar.accept(this);
+            }
+        }
+
+        ArrayList<Statement> bodyStmts = handlerDeclaration.getBody();
+        if (bodyStmts != null) {
+            for (Statement bodyStmt : bodyStmts) {
+                bodyStmt.accept(this);
+            }
+        }
+
         return null;
     }
 
