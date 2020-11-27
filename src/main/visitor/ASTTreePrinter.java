@@ -227,7 +227,18 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(ObjectOrListMemberAccess objectOrListMemberAccess) {
-        //Todo
+        System.out.println(objectOrListMemberAccess.toString());
+
+        Expression instance = objectOrListMemberAccess.getInstance();
+        if (instance != null) {
+            instance.accept(this);
+        }
+
+        Identifier memberName = objectOrListMemberAccess.getMemberName();
+        if (memberName != null) {
+            memberName.accept(this);
+        }
+
         return null;
     }
 
@@ -239,7 +250,18 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(ListAccessByIndex listAccessByIndex) {
-        //Todo
+        System.out.println(listAccessByIndex.toString());
+
+        Expression instance = listAccessByIndex.getInstance();
+        if(instance != null) {
+            instance.accept(this);
+        }
+
+        Expression index = arrayCall.getIndex();
+        if(index != null) {
+            index.accept(this);
+        }
+
         return null;
     }
 
