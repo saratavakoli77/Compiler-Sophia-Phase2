@@ -52,25 +52,65 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(VarDeclaration varDeclaration) {
-        //Todo
+        System.out.println(varDeclaration.toString());
+
+        Identifier varName = varDeclaration.getVarName();
+        if (varName != null) {
+            varName.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(AssignmentStmt assignmentStmt) {
-        //Todo
+        System.out.println(assignmentStmt.toString());
+
+        Expression lValue = assignmentStmt.getlValue();
+        if (lValue != null){
+            lValue.accept(this);
+        }
+
+        Expression rValue = assignmentStmt.getrValue();
+        if (rValue != null){
+            rValue.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(BlockStmt blockStmt) {
-        //Todo
+        System.out.println(blockStmt.toString());
+
+        ArrayList<Statement> stmts = blockStmt.getStatements();
+        if (stmts != null) {
+            for (Statement stmt : stmts) {
+                stmt.accept(this);
+            }
+        }
         return null;
     }
 
     @Override
     public Void visit(ConditionalStmt conditionalStmt) {
-        //Todo
+        System.out.println(conditionalStmt.toString());
+
+        Expression condition = conditionalStmt.getCondition();
+        if (condition != null) {
+            condition.accept(this);
+        }
+
+        Statement thenBody = conditionalStmt.getThenBody();
+        if (thenBody != null) {
+            thenBody.accept(this);
+        }
+
+        Statement elseBody = conditionalStmt.getElseBody();
+        if (elseBody != null) {
+            elseBody.accept(this);
+        }
+
         return null;
     }
 
@@ -82,7 +122,12 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(PrintStmt print) {
-        //Todo
+        System.out.println(print.toString());
+
+        Expression arg = print.getArg();
+        if (arg != null) {
+            arg.accept(this);
+        }
         return null;
     }
 
@@ -94,55 +139,129 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(BreakStmt breakStmt) {
-        //Todo
+        System.out.println(breakStmt.toString());
         return null;
     }
 
     @Override
     public Void visit(ContinueStmt continueStmt) {
-        //Todo
+        System.out.println(continueStmt.toString());
         return null;
     }
 
     @Override
     public Void visit(ForeachStmt foreachStmt) {
-        //Todo
+        System.out.println(foreachStmt.toString());
+
+        Identifier variable = ForeachStmt.getVariable();
+        if (variable != null) {
+            variable.accept(this);
+        }
+
+        Expression list = ForeachStmt.getList();
+        if (list != null) {
+            list.accept(this);
+        }
+
+        Statement body = ForeachStmt.getBody();
+        if (body != null) {
+            body.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(ForStmt forStmt) {
-        //Todo
+        System.out.println(forStmt.toString());
+
+        AssignmentStmt initialize = forStmt.getInitialize();
+        if (initialize != null) {
+            initialize.accept(this);
+        }
+
+        Expression condition = forStmt.getCondition();
+        if (condition != null) {
+            condition.accept(this);
+        }
+
+        AssignmentStmt update = forStmt.getUpdate();
+        if (update != null) {
+            update.accept(this);
+        }
+
+        Statement body = forStmt.getBody();
+        if (body != null) {
+            body.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(BinaryExpression binaryExpression) {
-        //Todo
+        System.out.println(binaryExpression.toString());
+
+        Expression firstOperand = binaryExpression.getFirstOperand();
+        if (firstOperand != null) {
+            firstOperand.accept(this);
+        }
+
+        Expression secondOperand = binaryExpression.getSecondOperand();
+        if (secondOperand != null) {
+            secondOperand.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(UnaryExpression unaryExpression) {
-        //Todo
+        System.out.println(unaryExpression.toString());
+        Expression operand = unaryExpression.getOperand();
+        if (operand != null) {
+            operand.accept(this);
+        }
         return null;
     }
 
     @Override
     public Void visit(ObjectOrListMemberAccess objectOrListMemberAccess) {
-        //Todo
+        System.out.println(objectOrListMemberAccess.toString());
+
+        Expression instance = objectOrListMemberAccess.getInstance();
+        if (instance != null) {
+            instance.accept(this);
+        }
+
+        Identifier memberName = objectOrListMemberAccess.getMemberName();
+        if (memberName != null) {
+            memberName.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(Identifier identifier) {
-        //Todo
+        System.out.println(identifier.toString());
         return null;
     }
 
     @Override
     public Void visit(ListAccessByIndex listAccessByIndex) {
-        //Todo
+        System.out.println(listAccessByIndex.toString());
+
+        Expression instance = listAccessByIndex.getInstance();
+        if(instance != null) {
+            instance.accept(this);
+        }
+
+        Expression index = arrayCall.getIndex();
+        if(index != null) {
+            index.accept(this);
+        }
+
         return null;
     }
 
@@ -154,13 +273,21 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(NewClassInstance newClassInstance) {
-        //Todo
+        System.out.println(newClassInstance.toString());
+
+        ArrayList<Expression> args = newClassInstance.getArgs();
+        if(args != null) {
+            for (Expression arg : args) {
+                arg.accept(this);
+            }
+        }
+
         return null;
     }
 
     @Override
     public Void visit(ThisClass thisClass) {
-        //Todo
+        System.out.println(thisClass.toString());
         return null;
     }
 
@@ -172,25 +299,25 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(NullValue nullValue) {
-        //Todo
+        System.out.println(nullValue.toString());
         return null;
     }
 
     @Override
     public Void visit(IntValue intValue) {
-        //Todo
+        System.out.println(intValue.toString());
         return null;
     }
 
     @Override
     public Void visit(BoolValue boolValue) {
-        //Todo
+        System.out.println(boolValue.toString());
         return null;
     }
 
     @Override
     public Void visit(StringValue stringValue) {
-        //Todo
+        System.out.println(stringValue.toString());
         return null;
     }
 
