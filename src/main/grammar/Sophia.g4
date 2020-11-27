@@ -61,17 +61,17 @@ varDeclaration returns [VarDeclaration dec]
     } 
     SEMICOLLON;
 
-method //void??
+method
     returns [MethodDeclaration dec]
     locals [Type t]
     : 
-    DEF (type { $t = type.t; } | VOID) 
+    DEF (type { $t = type.t; } | VOID { $t = new NullType(); } ) 
     identifier { $dec = new MethodDeclaration($identifier, $t); $dec.setLine($DEF.getLine()); }
     LPAR 
     (methodArguments { $dec.setArgs($methodArguments.decs); } ) 
     RPAR LBRACE methodBody 
     { $dec.setLocalVars($methodBody.decs); $dec.setBody($methodBody.stmts); } 
-    RBRACE; //Check this
+    RBRACE;
 
 constructor returns [ConstructorDeclaration dec]
     : 
@@ -87,7 +87,7 @@ methodArguments returns [ArrayList<VarDeclaration> decs]
     (variableWithType { $decs.add(variableWithType.dec); } 
     (COMMA variableWithType { $decs.add(variableWithType.dec); } )*)?;
 
-variableWithType returns [VarDeclaration dec] //check
+variableWithType returns [VarDeclaration dec]
     : identifier COLON type { $dec = new VarDeclaration($identifier.id, $type.t); } ;
 
 type returns [Type t]
@@ -99,15 +99,16 @@ type returns [Type t]
 classType returns[ClassType ct]
     : identifier { $ct = identifier.id; };
 
-listType returns [ListType t] //SetLine ?
-    : LIST LPAR ((INT_VALUE SHARP type) 
-    { $t = new ListType($INT_VALUE.int, ); } | 
-    (listItemsTypes)) RPAR;
+listType returns [ListType t]
+    : 
+    LIST LPAR ((INT_VALUE SHARP type) 
+    { $t = new ListType($INT_VALUE.int, $type.t); } | 
+    (listItemsTypes { $t = new ListType($listItemsTypes.ts); } )) RPAR;
 
 listItemsTypes returns [ArrayList<ListNameType> ts]
     : 
-    listItemType { ts.add(listItemType.t); }
-    (COMMA listItemType { $ts.add(listItemType.t); })*;  //should I define vars?
+    listItemType { $ts.add($listItemType.t); }
+    (COMMA listItemType { $ts.add($listItemType.t); })*;  //should I define vars?
 
 listItemType returns [ListNameType t]
     : { $t = new ArrayList<ListNameType>() } 
@@ -115,20 +116,22 @@ listItemType returns [ListNameType t]
     type { $t = new ListNameType($type.t); } ;
 
 functionPointerType returns [FptrType t]
-    locals [ArrayList<Type> argumentsTypes, Type returnType] //void?
+    locals [ArrayList<Type> argumentsTypes, Type returnType]
     : 
+    { $argumentsTypes = new ArrayList<type>(); }
     FUNC LESS_THAN 
     (VOID | typesWithComma { $argumentsTypes = typesWithComma.ts; } ) 
-    ARROW (VOID | type { $returnType = type.t } ) GREATER_THAN 
+    ARROW (VOID { $returnType = new NullType(); } | type { $returnType = type.t; } ) GREATER_THAN 
     { $t = new FptrType(argumentsTypes, returnType); };
 
 typesWithComma returns [ArrayList<Type> ts]
-    : { $ts = new ArrayList<type>(); }
+    : 
+    { $ts = new ArrayList<type>(); }
     type { $ts.add(type.t); } (COMMA type { $ts.add(type.t); } )*;
 
 primitiveDataType returns[Type t]
     : 
-    INT { $t = new IntType(); $t.setLine($INT.getLine()); } | // is setLine getLine necessary
+    INT { $t = new IntType(); $t.setLine($INT.getLine()); } |
     STRING { $t = new StringType(); $t.setLine($STRING.getLine()); } | 
     BOOLEAN { $t = new BoolType(); $t.setLine($BOOLEAN.getLine()); } ;
 
@@ -169,39 +172,56 @@ assignmentStatement [AssignmentStatement stmt]
 assignment [Expression lVal, Expression rVal, int line]
     : 
     orExpression { $lVal = $orExpression.exp; } 
-    ASSIGN 
-    expression { $rVal = $expression.exp; $line = getLine }; //TODO i don't know
+    ASSIGN { $line = $ASSIGN.getLine(); }
+    expression { $rVal = $expression.exp; };
 
 printStatement [PrintStmt stmt]
     : 
     PRINT LPAR expression RPAR SEMICOLLON
-    { $stmt = nem PrintStmt($expression.exp); $stmt.setLine($PRINT.getLine()); } ;
+    { $stmt = new PrintStmt($expression.exp); $stmt.setLine($PRINT.getLine()); } ;
 
 returnStatement returns [ReturnStmt stmt]
     : 
-    RETURN { $stmt = nem ReturnStmt(); $stmt.setLine($RETURN.getLine()); } 
+    RETURN { $stmt = new ReturnStmt(); $stmt.setLine($RETURN.getLine()); } 
     (expression { $stmt.setReturnedExpr($expression.exp); } )? SEMICOLLON;
 
 methodCallStatement returns [MethodCallStmt stmt]
-    : methodCall { stmt = MethodCallStmt($methodCall.exp); stmt.setLine($methodCall.exp.getLine()); } SEMICOLLON;
+    : methodCall 
+    { 
+        stmt = MethodCallStmt($methodCall.exp); 
+        stmt.setLine($methodCall.exp.getLine()); 
+    } 
+    SEMICOLLON;
 //is getLine right this way?
 
 methodCall returns [MethodCall exp]
-    : otherExpression
+    : otherExpression { $exp = $otherExpression.exp; }
     (
         (
-            LPAR methodCallArguments RPAR //TODO
+            LPAR methodCallArguments RPAR
+            { 
+                $exp = new MethodCall($otherExpression.exp, $methodCallArguments.exps);
+                $exp.setLine($LPAR.getLine());
+            }
         ) | 
         (
             DOT identifier
+            { 
+                $exp = new ObjectOrListMemberAccess($otherExpression.exp, $identifier.id); 
+                $exp.setLine($identifier.id.getLine()); 
+            } // should i return line
         ) | 
         (
             LBRACK expression RBRACK
+            { 
+                $exp = new ListAccessByIndex($otherExpression.exp, expression.exp); 
+                $exp.setLine($LBRACK.getLine());
+            }
         )
     )* 
     (LPAR methodCallArguments RPAR)
     { 
-        $exp = new MethodCall($otherExpression.exp, $methodCallArguments.exps);
+        $exp = new MethodCall($exp, $methodCallArguments.exps);
         $exp.setLine($LPAR.getLine()); 
     }  // Should I use if? and change methodCall
     ;
@@ -237,8 +257,7 @@ foreachStatement returns [ForeachStmt stmt]
     { 
         $stmt = new ForeachStmt($identifier, $expression);
         $stmt.setLine($FOREACH.getLine()):
-    
-    } // check: is it in right place
+    }
     statement { $stmt.setBody($statement); };
 
 ifStatement returns [ConditionalStmt stmt]
@@ -375,7 +394,7 @@ accessExpression returns [Expression exp]
             LPAR methodCallArguments RPAR
             { 
                 $exp = new MethodCall($otherExpression.exp, $methodCallArguments.exps);
-                 $exp.setLine($LPAR.getLine()); 
+                $exp.setLine($LPAR.getLine()); 
             }  // Should I use if? and change methodCall
         ) |
         (
