@@ -73,26 +73,82 @@ assignmentStatement: assignment SEMICOLLON;
 
 assignment: orExpression ASSIGN expression;
 
-printStatement: PRINT LPAR expression RPAR SEMICOLLON;
+printStatement [PrintStmt stmt]
+    : 
+    PRINT LPAR expression RPAR SEMICOLLON
+    { $stmt = nem PrintStmt($expression.exp); $stmt.setLine($PRINT.getLine()); } ;
 
-returnStatement: RETURN expression? SEMICOLLON;
+returnStatement returns [ReturnStmt stmt]
+    : 
+    RETURN { $stmt = nem ReturnStmt(); $stmt.setLine($RETURN.getLine()); } 
+    (expression { $stmt.setReturnedExpr($expression.exp); } )? SEMICOLLON;
 
-methodCallStatement: methodCall SEMICOLLON;
+methodCallStatement returns [MethodCallStmt stmt]
+    : methodCall { stmt = MethodCallStmt($methodCall.exp); stmt.setLine($methodCall.exp.getLine()); } SEMICOLLON;
+//is getLine right this way?
 
-methodCall: otherExpression ((LPAR methodCallArguments RPAR) | (DOT identifier) | (LBRACK expression RBRACK))* (LPAR methodCallArguments RPAR);
+methodCall returns [MethodCall exp]
+    : otherExpression
+    (
+        (
+            LPAR methodCallArguments RPAR //TODO
+        ) | 
+        (
+            DOT identifier
+        ) | 
+        (
+            LBRACK expression RBRACK
+        )
+    )* 
+    (LPAR methodCallArguments RPAR)
+    { 
+        $exp = new MethodCall($otherExpression.exp, $methodCallArguments.exps);
+        $exp.setLine($LPAR.getLine()); 
+    }  // Should I use if? and change methodCall
+    ;
 
 methodCallArguments returns [ArrayList<Expression> exps]
     : { $exps = new ArrayList<Expression>(); }
     (expression { $exps.add($expression.exp); }
     (COMMA expression { $exps.add($expression.exp); } )*)?;
 
-continueBreakStatement: (BREAK | CONTINUE) SEMICOLLON;
+continueBreakStatement returns [Statement stmt]
+    : (
+        BREAK { $stmt = new BreakStmt(); $stmt.setLine($BREAK.getLine()); } | 
+        CONTINUE { $stmt = new ContinueStmt(); $stmt.setLine($CONTINUE.getLine()); }
+    ) SEMICOLLON;
 
-forStatement: FOR LPAR (assignment)? SEMICOLLON (expression)? SEMICOLLON (assignment)? RPAR statement;
+forStatement returns [ForStmt stmt]
+    : FOR LPAR 
+    { $stmt = new ForStmt(); $stmt.setLine($FOR.getLine()); }
+    (
+        initStmt = assignment { $stmt.setInitialize($initStmt.stmt); }
+    )? SEMICOLLON 
+    (
+        expression { $stmt.setInitialize($expression.exp); }
+    )? SEMICOLLON 
+    (
+        updateStmt = assignment { $stmt.setUpdate($updateStmt.stmt); }
+    )? RPAR 
+    bodyStmt = statement 
+    { $stmt.setBody($bodyStmt.stmt); };
 
-foreachStatement: FOREACH LPAR identifier IN expression RPAR statement;
+foreachStatement returns [ForeachStmt stmt]
+    : FOREACH LPAR identifier IN expression RPAR
+    { 
+        $stmt = new ForeachStmt($identifier, $expression);
+        $stmt.setLine($FOREACH.getLine()):
+    
+    } // check: is it in right place
+    statement { $stmt.setBody($statement); };
 
-ifStatement: IF LPAR expression RPAR statement (ELSE statement)?;
+ifStatement returns [ConditionalStmt stmt]
+    : IF LPAR expression RPAR ifStmt = statement
+    {
+        $stmt = new ConditionalStmt($expression.exp, $ifStmt.stmt);
+        $stmt.setLine($IF.getLine());
+    }
+    (ELSE elseStmt = statement { $stmt.setElseBody($elseStmt.stmt) } )?;
 
 expression returns [Expression exp]
     : orExpression { $exp = $orExpression.exp; }
@@ -214,10 +270,30 @@ postUnaryExpression
 
 accessExpression returns [Expression exp]
     : 
-    otherExpression 
-    ((LPAR methodCallArguments RPAR) |
-    (DOT identifier) | 
-    (LBRACK expression RBRACK))*;
+    otherExpression { $exp = $otherExpression.exp; }
+    (
+        (
+            LPAR methodCallArguments RPAR
+            { 
+                $exp = new MethodCall($otherExpression.exp, $methodCallArguments.exps);
+                 $exp.setLine($LPAR.getLine()); 
+            }  // Should I use if? and change methodCall
+        ) |
+        (
+            DOT identifier
+            { 
+                $exp = new ObjectOrListMemberAccess($otherExpression.exp, $identifier.id); 
+                $exp.setLine($identifier.id.getLine()); 
+            } // should i return line
+        ) | 
+        (
+            LBRACK expression RBRACK
+            { 
+                $exp = new ListAccessByIndex($otherExpression.exp, expression.exp); 
+                $exp.setLine($LBRACK.getLine());
+            }
+        )
+    )*;
 
 otherExpression returns [Expression exp]
     : 
