@@ -34,18 +34,18 @@ sophiaClass returns [ClassDeclaration dec]
     (
         (
             (
-                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                varDeclaration { $dec.addField(new FieldDeclaration($varDeclaration.dec)); } | 
                 method { $dec.addMethod($method.dec); } 
             )* 
             (constructor { $dec.setConstructor($constructor.dec); } ) 
             (
-                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                varDeclaration { $dec.addField(new FieldDeclaration($varDeclaration.dec)); } | 
                 method { $dec.addMethod($method.dec); } 
             )*
         ) | 
         (
             (
-                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                varDeclaration { $dec.addField(new FieldDeclaration($varDeclaration.dec)); } | 
                 method { $dec.addMethod($method.dec); } 
             )*
         )

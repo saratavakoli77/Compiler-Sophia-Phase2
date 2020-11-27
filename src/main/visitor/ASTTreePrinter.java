@@ -22,7 +22,14 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(Program program) {
-        //Todo
+        System.out.println(program.toString());
+        ArrayList<ClassDeclaration> classes = program.getClasses();
+        if (classes != null) {
+            for (ClassDeclaration class : classes) {
+                class.accept(this);
+            }
+        }
+        //main ?!
         return null;
     }
 
@@ -64,7 +71,34 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(ConstructorDeclaration constructorDeclaration) {
-        //Todo
+        System.out.println(constructorDeclaration.toString());
+
+        Identifier methodName = constructorDeclaration.getMethodName();
+        if (methodName != null) {
+            methodName.accept(this);
+        }
+
+        ArrayList<VarDeclaration> args = constructorDeclaration.getArgs();
+        if (args != null) {
+            for (VarDeclaration arg : args) {
+                arg.accept(this);
+            }
+        }
+
+        ArrayList<VarDeclaration> localVars = constructorDeclaration.getLocalVars();
+        if (localVars != null) {
+            for (VarDeclaration localVar : localVars) {
+                localVar.accept(this);
+            }
+        }
+
+        ArrayList<Statement> bodyStmts = constructorDeclaration.getBody();
+        if (bodyStmts != null) {
+            for (Statement bodyStmt : bodyStmts) {
+                bodyStmt.accept(this);
+            }
+        }
+
         return null;
     }
 
@@ -72,10 +106,10 @@ public class ASTTreePrinter extends Visitor<Void> {
     public Void visit(MethodDeclaration methodDeclaration) {
         System.out.println(methodDeclaration.toString());
 
-        Type returnType = methodDeclaration.getReturnType();
-        if (returnType != null) {
-            returnType.accept(this);
-        }
+        // Type returnType = methodDeclaration.getReturnType();
+        // if (returnType != null) {
+        //     returnType.accept(this);
+        // }
 
         Identifier methodName = methodDeclaration.getMethodName();
         if (methodName != null) {
@@ -108,14 +142,20 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(FieldDeclaration fieldDeclaration) {
-        //Todo
+        System.out.println(fieldDeclaration.toString());
+        //type accept nadare
+        VarDeclaration varDeclaration = fieldDeclaration.getVarDeclaration();
+        if (varDeclaration != null) {
+            varDeclaration.accept(this);
+        }
+
         return null;
     }
 
     @Override
     public Void visit(VarDeclaration varDeclaration) {
         System.out.println(varDeclaration.toString());
-
+        //type accept nadare
         Identifier varName = varDeclaration.getVarName();
         if (varName != null) {
             varName.accept(this);
@@ -151,6 +191,7 @@ public class ASTTreePrinter extends Visitor<Void> {
                 stmt.accept(this);
             }
         }
+
         return null;
     }
 
@@ -178,7 +219,13 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(MethodCallStmt methodCallStmt) {
-        //Todo
+        System.out.println(methodCallStmt.toString());
+
+        MethodCall methodCall = methodCallStmt.getMethodCall();
+        if (methodCall != null) {
+            methodCall.accept(this);
+        }
+
         return null;
     }
 
@@ -190,12 +237,19 @@ public class ASTTreePrinter extends Visitor<Void> {
         if (arg != null) {
             arg.accept(this);
         }
+
         return null;
     }
 
     @Override
     public Void visit(ReturnStmt returnStmt) {
-        //Todo
+        System.out.println(returnStmt.toString());
+
+        Expression returnedExpr = returnStmt.getReturnedExpr();
+        if (returnedExpr != null) {
+            returnedExpr.accept(this);
+        }
+
         return null;
     }
 
@@ -315,12 +369,12 @@ public class ASTTreePrinter extends Visitor<Void> {
         System.out.println(listAccessByIndex.toString());
 
         Expression instance = listAccessByIndex.getInstance();
-        if(instance != null) {
+        if (instance != null) {
             instance.accept(this);
         }
 
         Expression index = arrayCall.getIndex();
-        if(index != null) {
+        if (index != null) {
             index.accept(this);
         }
 
@@ -329,7 +383,20 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(MethodCall methodCall) {
-        //Todo
+        System.out.println(methodCall.toString());
+
+        Expression instance = methodCall.getInstance();
+        if(instance != null) {
+            instance.accept(this);
+        }
+
+        ArrayList<Expression> args = methodCall.getArgs();
+        if(args != null) {
+            for (Expression arg : args) {
+                arg.accept(this);
+            }
+        }
+
         return null;
     }
 
@@ -355,7 +422,15 @@ public class ASTTreePrinter extends Visitor<Void> {
 
     @Override
     public Void visit(ListValue listValue) {
-        //Todo
+        System.out.println(listValue.toString());
+
+        ArrayList<Expression> elements = listValue.getElements();
+        if(elements != null) {
+            for (Expression element : elements) {
+                element.accept(this);
+            }
+        }
+
         return null;
     }
 
