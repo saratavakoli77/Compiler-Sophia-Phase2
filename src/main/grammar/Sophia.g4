@@ -26,7 +26,31 @@ program returns[Program p]
     : { $p = new Program(); }
     (sophiaClass { $p.addClass($sophiaClass.classDec; ); } )*;
 
-sophiaClass: CLASS identifier (EXTENDS identifier)? LBRACE (((varDeclaration | method)* constructor (varDeclaration | method)*) | ((varDeclaration | method)*)) RBRACE;
+sophiaClass returns [ClassDeclaration dec]
+    : 
+    CLASS identifier { $dec = new ClassDeclaration($identifier.id); $dec.setLine($CLASS.gitLine()); }
+    (EXTENDS identifier { $dec.setParent($identifier.id); } )? 
+    LBRACE 
+    (
+        (
+            (
+                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                method { $dec.addMethod($method.dec); } 
+            )* 
+            (constructor { $dec.setConstructor($constructor.dec); } ) 
+            (
+                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                method { $dec.addMethod($method.dec); } 
+            )*
+        ) | 
+        (
+            (
+                varDeclaration { $dec.addField($varDeclaration.dec); } | 
+                method { $dec.addMethod($method.dec); } 
+            )*
+        )
+    ) 
+    RBRACE;
 
 varDeclaration returns [VarDeclaration dec]
     : 
