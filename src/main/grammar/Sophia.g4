@@ -18,9 +18,13 @@ grammar Sophia;
     import main.ast.nodes.statement.loop.*;
 }
 
-sophia returns[Program sophiaProgram]: program EOF;
+sophia returns[Program sophiaProgram]
+    : { $sophiaProgram = new Program(); }
+    program { $sophiaProgram = $program } EOF;
 
-program: (sophiaClass)*;
+program returns[Program p]
+    : { $p = new Program(); }
+    (sophiaClass { $p.addClass($sophiaClass.classDec; ); } )*;
 
 sophiaClass: CLASS identifier (EXTENDS identifier)? LBRACE (((varDeclaration | method)* constructor (varDeclaration | method)*) | ((varDeclaration | method)*)) RBRACE;
 
@@ -34,9 +38,14 @@ methodArguments: (variableWithType (COMMA variableWithType)*)?;
 
 variableWithType: identifier COLON type;
 
-type: primitiveDataType | listType | functionPointerType | classType;
+type
+    : primitiveDataType | 
+    listType | 
+    functionPointerType | 
+    classType;
 
-classType: identifier;
+classType returns[ClassType ct]
+    : identifier { $ct = identifier.id; };
 
 listType: LIST LPAR ((INT_VALUE SHARP type) | (listItemsTypes)) RPAR;
 
@@ -48,7 +57,11 @@ functionPointerType: FUNC LESS_THAN (VOID | typesWithComma) ARROW (VOID | type) 
 
 typesWithComma: type (COMMA type)*;
 
-primitiveDataType: INT | STRING | BOOLEAN;
+primitiveDataType returns[Type t]
+    : 
+    INT { $t = new IntType(); $t.setLine($INT.getLine()); } | // is setLine getLine necessary
+    STRING { $t = new StringType(); $t.setLine($STRING.getLine()); } | 
+    BOOLEAN { $t = new BoolType(); $t.setLine($BOOLEAN.getLine()); } ;
 
 methodBody: (varDeclaration)* (statement)*;
 
@@ -68,7 +81,10 @@ methodCallStatement: methodCall SEMICOLLON;
 
 methodCall: otherExpression ((LPAR methodCallArguments RPAR) | (DOT identifier) | (LBRACK expression RBRACK))* (LPAR methodCallArguments RPAR);
 
-methodCallArguments: (expression (COMMA expression)*)?;
+methodCallArguments returns [ArrayList<Expression> exps]
+    : { $exps = new ArrayList<Expression>(); }
+    (expression { $exps.add($expression.exp); }
+    (COMMA expression { $exps.add($expression.exp); } )*)?;
 
 continueBreakStatement: (BREAK | CONTINUE) SEMICOLLON;
 
@@ -88,27 +104,99 @@ equalityExpression: relationalExpression ((EQUAL | NOT_EQUAL) relationalExpressi
 
 relationalExpression: additiveExpression ((GREATER_THAN | LESS_THAN) additiveExpression)*;
 
-additiveExpression: multiplicativeExpression ((PLUS | MINUS) multiplicativeExpression)*;
+additiveExpression
+    returns [Expression exp]
+    locals [BinaryOperator op, int line]
+    : multiplicativeExpression { $exp = $multiplicativeExpression.exp; }
+    (
+        (
+            PLUS { $op = BinaryOperator.add; $line = $PLUS.getLine(); } | 
+            MINUS { $op = BinaryOperator.sub; $line = $MINUS.getLine(); }
+        ) 
+        multiplicativeExpression { $exp = new BinaryExpression($exp, $multiplicativeExpression.exp, $op); $exp.setLine($line); }
+    )*;
 
-multiplicativeExpression: preUnaryExpression ((MULT | DIVIDE | MOD) preUnaryExpression)*;
+multiplicativeExpression
+    returns [Expression exp]
+    locals[UnaryOperator op, int line]
+    : preUnaryExpression { $exp = $preUnaryExpression.exp; }
+    (
+        (
+            MULT { $op = BinaryOperator.mult; $line = $MULT.getLine(); } | 
+            DIVIDE { $op = BinaryOperator.div; $line = $DIVIDE.getLine(); } | 
+            MOD { $op = BinaryOperator.mod; $line = $MOD.getLine(); }
+        ) 
+        preUnaryExpression { $exp = new BinaryExpression($exp, $preUnaryExpression.exp, $op); $exp.setLine($line); }
+    )*;
 
-preUnaryExpression: ((NOT | MINUS | INCREMENT | DECREMENT) preUnaryExpression) | postUnaryExpression;
+preUnaryExpression
+    returns [Expression exp]
+    locals[UnaryOperator op, int line]
+    : 
+    (
+        (
+            NOT { $op = UnaryOperator.not; $line = $INCREMENT.getLine(); } | 
+            MINUS { $op = UnaryOperator.minus; $line = $INCREMENT.getLine(); } | 
+            INCREMENT { $op = UnaryOperator.preinc; $line = $INCREMENT.getLine(); } | 
+            DECREMENT { $op = UnaryOperator.predec; $line = $INCREMENT.getLine(); }
+        ) 
+        preUnaryExpression { $exp = new UnaryExpression($preUnaryExpression.exp, $op);}
+    ) | postUnaryExpression { $exp = $postUnaryExpression.exp; };
 
-postUnaryExpression: accessExpression (INCREMENT | DECREMENT)?;
+postUnaryExpression 
+    returns [Expression exp]
+    locals[UnaryOperator op, int line]
+    : 
+    accessExpression { $exp = $accessExpression.exp; }
+    (
+        (
+            INCREMENT { $op = UnaryOperator.postinc; $line = $INCREMENT.getLine(); } | 
+            DECREMENT { $op = UnaryOperator.postdec; $line = $INCREMENT.getLine(); }
+        )
+        { $exp = new UnaryExpression($op, $exp); $exp.setLine($line); }
+    )?;
 
-accessExpression: otherExpression ((LPAR methodCallArguments RPAR) | (DOT identifier) | (LBRACK expression RBRACK))*;
+accessExpression returns [Expression exp]
+    : 
+    otherExpression 
+    ((LPAR methodCallArguments RPAR) |
+    (DOT identifier) | 
+    (LBRACK expression RBRACK))*;
 
-otherExpression: THIS | newExpression | values | identifier | LPAR (expression) RPAR;
+otherExpression returns [Expression exp]
+    : 
+    THIS { $exp = new ThisClass(); $exp.setLine($THIS.getLine()); } | 
+    newExpression | 
+    values { $exp = $value.val; } | 
+    identifier { $exp = $identifier.id; } | 
+    LPAR (expression { $exp = $expression.exp; } ) RPAR;
 
-newExpression: NEW classType LPAR methodCallArguments RPAR;
+newExpression [NewClassInstance nci]
+    : 
+    NEW classType 
+    LPAR 
+    methodCallArguments 
+    RPAR 
+    { $nci = new NewClassInstance($classType.ct, $methodCallArguments.exps);  } ;
 
-values: boolValue | STRING_VALUE | INT_VALUE | NULL | listValue;
+values returns [Value val]
+    : 
+    boolValue { $val = boolValue.val; } |
+    STRING_VALUE  { $val = new StringValue($STRING_VALUE.text); $val.setLine($STRING_VALUE.getLine()); } | 
+    INT_VALUE { $val = new IntValue($INT_VALUE.int); $val.setLine($INT_VALUE.getLine()); } | 
+    NULL { $val = new NullValue(); $val.setLine($NULL.getLine()); } | 
+    listValue;
 
-boolValue: TRUE | FALSE;
+boolValue returns [BoolValue val]
+    : 
+    TRUE { $val = new BoolValue(true); $val.setLine($TRUE.getLine()); } |
+    FALSE { $val = new BoolValue(false); $val.setLine($FALSE.getLine()); };
 
 listValue: LBRACK methodCallArguments RBRACK;
 
-identifier: IDENTIFIER;
+identifier returns [Identifier id]
+    : 
+    IDENTIFIER { $id = new Identifier($IDENTIFIER.text); $id.setLine($IDENTIFIER.getLine()); } ;
 
 
 DEF: 'def';
