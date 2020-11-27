@@ -28,15 +28,43 @@ program returns[Program p]
 
 sophiaClass: CLASS identifier (EXTENDS identifier)? LBRACE (((varDeclaration | method)* constructor (varDeclaration | method)*) | ((varDeclaration | method)*)) RBRACE;
 
-varDeclaration: identifier COLON type SEMICOLLON;
+varDeclaration returns [VarDeclaration dec]
+    : 
+    identifier COLON type 
+    { 
+        $dec = new VarDeclaration($identifier.id, $type.t); 
+        $dec.setLine($identifier.id.getLine()) 
+    } 
+    SEMICOLLON;
 
-method: DEF (type | VOID) identifier LPAR methodArguments RPAR LBRACE methodBody RBRACE;
+method //void??
+    returns [MethodDeclaration dec]
+    locals [Type t]
+    : 
+    DEF (type { $t = type.t; } | VOID) 
+    identifier { $dec = new MethodDeclaration($identifier, $t); $dec.setLine($DEF.getLine()); }
+    LPAR 
+    (methodArguments { $dec.setArgs($methodArguments.decs); } ) 
+    RPAR LBRACE methodBody 
+    { $dec.setLocalVars($methodBody.decs); $dec.setBody($methodBody.stmts); } 
+    RBRACE; //Check this
 
-constructor: DEF identifier LPAR methodArguments RPAR LBRACE methodBody RBRACE;
+constructor returns [ConstructorDeclaration dec]
+    : 
+    DEF identifier { $dec = new ConstructorDeclaration($identifier); $dec.setLine($DEF.getLine()); }
+    LPAR 
+    (methodArguments { $dec.setArgs($methodArguments.decs); } ) 
+    RPAR LBRACE methodBody 
+    { $dec.setLocalVars($methodBody.decs); $dec.setBody($methodBody.stmts); } 
+    RBRACE;
 
-methodArguments: (variableWithType (COMMA variableWithType)*)?;
+methodArguments returns [ArrayList<VarDeclaration> decs]
+    : { $decs = new ArrayList<VarDeclaration>(); }
+    (variableWithType { $decs.add(variableWithType.dec); } 
+    (COMMA variableWithType { $decs.add(variableWithType.dec); } )*)?;
 
-variableWithType: identifier COLON type;
+variableWithType returns [VarDeclaration dec] //check
+    : identifier COLON type { $dec = new VarDeclaration($identifier.id, $type.t); } ;
 
 type returns [Type t]
     : primitiveDataType { $t = $primitiveDataType.t; } | 
@@ -65,9 +93,16 @@ primitiveDataType returns[Type t]
     STRING { $t = new StringType(); $t.setLine($STRING.getLine()); } | 
     BOOLEAN { $t = new BoolType(); $t.setLine($BOOLEAN.getLine()); } ;
 
-methodBody: (varDeclaration)* (statement)*;
+methodBody returns [ArrayList<VarDeclaration> decs, ArrayList<Statement> stmts]
+    : { $decs = new ArrayList<VarDeclaration>(); $stmts = new ArrayList<Statement>(); }
+    (
+        varDeclaration { $decs.add($varDeclaration.dec); } 
+    )*
+    (
+        statement { $stmts.add($statement.stmt); }
+    )*;
 
-statement [Statement stmt]
+statement returns [Statement stmt]
     : 
     forStatement { $stmt = $forStatement.stmt; } | 
     foreachStatement { $stmt = $foreachStatement.stmt; } | 
@@ -90,7 +125,7 @@ assignmentStatement [AssignmentStatement stmt]
     { $stmt = new AssignmentStatement($assignment.lVal, $assignment.rVal); $stmt.setLine($assignment.line); };
 
 assignment [Expression lVal, Expression rVal, int line]
-    : orExpression ASSIGN expression { $line = getLine };
+    : orExpression ASSIGN expression { $line = getLine }; //TODO i don't know
 
 printStatement [PrintStmt stmt]
     : 
@@ -336,14 +371,16 @@ values returns [Value val]
     STRING_VALUE  { $val = new StringValue($STRING_VALUE.text); $val.setLine($STRING_VALUE.getLine()); } | 
     INT_VALUE { $val = new IntValue($INT_VALUE.int); $val.setLine($INT_VALUE.getLine()); } | 
     NULL { $val = new NullValue(); $val.setLine($NULL.getLine()); } | 
-    listValue;
+    listValue { $val = $listValue.val; } ;
 
 boolValue returns [BoolValue val]
     : 
     TRUE { $val = new BoolValue(true); $val.setLine($TRUE.getLine()); } |
     FALSE { $val = new BoolValue(false); $val.setLine($FALSE.getLine()); };
 
-listValue: LBRACK methodCallArguments RBRACK;
+listValue returns [ListValue val]
+    : { $val = new ListValue(); }
+    LBRACK methodCallArguments { $val.setElements($methodCallArguments.exps); } RBRACK;
 
 identifier returns [Identifier id]
     : 
