@@ -94,15 +94,71 @@ foreachStatement: FOREACH LPAR identifier IN expression RPAR statement;
 
 ifStatement: IF LPAR expression RPAR statement (ELSE statement)?;
 
-expression: orExpression (ASSIGN expression)?;
+expression returns [Expression exp]
+    : orExpression { $exp = $orExpression.exp; }
+    (
+        ASSIGN expression
+        { 
+            $exp = new BinaryExpression(
+                $exp, 
+                $orExpression.exp, 
+                BinaryOperator.assign
+            ); 
+            $exp.setLine($ASSIGN.getLine()); 
+        }
+    )?;
 
-orExpression: andExpression (OR andExpression)*;
+orExpression returns [Expression exp]
+    : andExpression { $exp = $andExpression.exp; }
+    (
+        OR andExpression
+        { 
+            $exp = new BinaryExpression(
+                $exp, 
+                $andExpression.exp, 
+                BinaryOperator.or
+            ); 
+            $exp.setLine($OR.getLine()); 
+        }
+    )*;
 
-andExpression: equalityExpression (AND equalityExpression)*;
+andExpression returns [Expression exp]
+    : equalityExpression { $exp = $equalityExpression.exp; }
+    (
+        AND equalityExpression
+        { 
+            $exp = new BinaryExpression(
+                $exp, 
+                $equalityExpression.exp, 
+                BinaryOperator.and
+            ); 
+            $exp.setLine($AND.getLine()); 
+        }
+    )*;
 
-equalityExpression: relationalExpression ((EQUAL | NOT_EQUAL) relationalExpression)*;
+equalityExpression
+    returns [Expression exp]
+    locals [BinaryOperator op, int line]
+    : relationalExpression { $exp = $relationalExpression.exp; }
+    (
+        (
+            EQUAL { $op = BinaryOperator.eq; $line = $EQUAL.getLine(); } | 
+            NOT_EQUAL { $op = BinaryOperator.neq; $line = $NOT_EQUAL.getLine(); }
+        ) 
+        relationalExpression { $exp = new BinaryExpression($exp, $relationalExpression.exp, $op); $exp.setLine($line); }
+    )*;
 
-relationalExpression: additiveExpression ((GREATER_THAN | LESS_THAN) additiveExpression)*;
+relationalExpression
+    returns [Expression exp]
+    locals [BinaryOperator op, int line]
+    : additiveExpression { $exp = $additiveExpression.exp; }
+    (
+        (
+            GREATER_THAN { $op = BinaryOperator.gt; $line = $GREATER_THAN.getLine(); } | 
+            LESS_THAN { $op = BinaryOperator.lt; $line = $LESS_THAN.getLine(); }
+        ) 
+        additiveExpression { $exp = new BinaryExpression($exp, $additiveExpression.exp, $op); $exp.setLine($line); }
+    )*;
 
 additiveExpression
     returns [Expression exp]
