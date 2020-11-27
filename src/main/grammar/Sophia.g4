@@ -20,11 +20,11 @@ grammar Sophia;
 
 sophia returns[Program sophiaProgram]
     : { $sophiaProgram = new Program(); }
-    program { $sophiaProgram = $program } EOF;
+    program { $sophiaProgram = $program.p; } EOF;
 
 program returns[Program p]
     : { $p = new Program(); }
-    (sophiaClass { $p.addClass($sophiaClass.classDec; ); } )*;
+    (sophiaClass { $p.addClass($sophiaClass.dec; ); } )*;
 
 sophiaClass returns [ClassDeclaration dec]
     : 
@@ -99,13 +99,28 @@ type returns [Type t]
 classType returns[ClassType ct]
     : identifier { $ct = identifier.id; };
 
-listType: LIST LPAR ((INT_VALUE SHARP type) | (listItemsTypes)) RPAR;
+listType returns [ListType t] //SetLine ?
+    : LIST LPAR ((INT_VALUE SHARP type) 
+    { $t = new ListType($INT_VALUE.int, ); } | 
+    (listItemsTypes)) RPAR;
 
-listItemsTypes: listItemType (COMMA listItemType)*;
+listItemsTypes returns [ArrayList<ListNameType> ts]
+    : 
+    listItemType { ts.add(listItemType.t); }
+    (COMMA listItemType { $ts.add(listItemType.t); })*;  //should I define vars?
 
-listItemType: variableWithType | type;
+listItemType returns [ListNameType t]
+    : { $t = new ArrayList<ListNameType>() } 
+    variableWithType { $t = new ListNameType($variableWithType.dec); }  | 
+    type { $t = new ListNameType($type.t); } ;
 
-functionPointerType: FUNC LESS_THAN (VOID | typesWithComma) ARROW (VOID | type) GREATER_THAN;
+functionPointerType returns [FptrType t]
+    locals [ArrayList<Type> argumentsTypes, Type returnType] //void?
+    : 
+    FUNC LESS_THAN 
+    (VOID | typesWithComma { $argumentsTypes = typesWithComma.ts; } ) 
+    ARROW (VOID | type { $returnType = type.t } ) GREATER_THAN 
+    { $t = new FptrType(argumentsTypes, returnType); };
 
 typesWithComma returns [ArrayList<Type> ts]
     : { $ts = new ArrayList<type>(); }
@@ -146,10 +161,16 @@ block [BlockStmt stmt]
 
 assignmentStatement [AssignmentStatement stmt]
     : assignment SEMICOLLON
-    { $stmt = new AssignmentStatement($assignment.lVal, $assignment.rVal); $stmt.setLine($assignment.line); };
+    { 
+        $stmt = new AssignmentStatement($assignment.lVal, $assignment.rVal); 
+        $stmt.setLine($assignment.line); 
+    };
 
 assignment [Expression lVal, Expression rVal, int line]
-    : orExpression ASSIGN expression { $line = getLine }; //TODO i don't know
+    : 
+    orExpression { $lVal = $orExpression.exp; } 
+    ASSIGN 
+    expression { $rVal = $expression.exp; $line = getLine }; //TODO i don't know
 
 printStatement [PrintStmt stmt]
     : 
