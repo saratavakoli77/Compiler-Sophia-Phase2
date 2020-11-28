@@ -2,7 +2,7 @@ package main.compileError;
 
 import java.util.*;
 
-public class CompileErrors {
+public class CompileTimeErrors {
     private static HashMap<Integer, ArrayList<String>> errors = new HashMap<>();
     
     public static boolean hasErrors() {

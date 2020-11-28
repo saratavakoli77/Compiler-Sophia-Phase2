@@ -20,7 +20,7 @@ public class ClassDeclaration extends Declaration {
     public ClassDeclaration(Identifier className) {
         this.className = className;
     }
-
+    
     public Identifier getClassName() {
         return className;
     }

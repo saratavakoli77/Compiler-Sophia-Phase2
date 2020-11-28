@@ -31,7 +31,7 @@ import main.symbolTable.exception.ItemNotFoundException;
 
 import main.compileError.CompileTimeErrors;
 
-public class ASTTreePrinter extends Visitor<Void> {
+public class NameAnalyzer implements Visitor {
 
     @Override
     public Void visit(Program program) {
@@ -93,7 +93,7 @@ public class ASTTreePrinter extends Visitor<Void> {
             } catch (ItemAlreadyExistsException e) {
                 String name = classDeclaration.getClassName().getName();
                 if (Character.isDigit(name.charAt(0))) {
-                    CompileErrors.add(classDeclaration.getLine(), "Redefinition of class " + name);
+                    CompileTimeErrors.add(classDeclaration.getLine(), "Redefinition of class " + name);
                 }
                 classItem.setName(counter + itemName);
                 counter += 1;
@@ -137,12 +137,25 @@ public class ASTTreePrinter extends Visitor<Void> {
         methodItem.setMethodSymbolTable(SymbolTable.top);
         SymbolTable.pop()
 
+        // try {
+        //     SymbolTable.top.put(methodItem);
+        //     break;
+        // } catch (ItemAlreadyExistsException e) {
+        //     String name = constructorDeclaration.getMethodName().getName();
+        //     CompileTimeErrors.add(constructorDeclaration.getLine(), "Redefinition of method " + name);
+        // }
+        String name = constructorDeclaration.getMethodName().getName();
         try {
-            SymbolTable.top.put(methodItem);
+            SymbolTable.top.getItem(FieldSymbolTableItem.START_KEY + constructorDeclaration.getMethodName().getName(), true);
+            CompileTimeErrors.add(constructorDeclaration.getLine(), "Name of method " + name + " conflicts with a field's name");
             break;
-        } catch (ItemAlreadyExistsException e) {
-            String name = constructorDeclaration.getMethodName().getName();
-            CompileErrors.add(constructorDeclaration.getLine(), "Redefinition of method " + name);
+        } catch (ItemNotFoundException e) {
+            try {
+                SymbolTable.top.put(methodItem);
+                break;
+            } catch (ItemAlreadyExistsException e2) {
+                CompileTimeErrors.add(constructorDeclaration.getLine(), "Redefinition of method " + name);
+            }
         }
 
         return null;
@@ -187,12 +200,26 @@ public class ASTTreePrinter extends Visitor<Void> {
         methodItem.setMethodSymbolTable(SymbolTable.top);
         SymbolTable.pop()
 
+        // try {
+        //     SymbolTable.top.get(FieldSymbolTableItem.START_KEY + methodDeclaration.getMethodName().getName());
+        //     SymbolTable.top.put(methodItem);
+        //     break;
+        // } catch (ItemAlreadyExistsException e) {
+        //     String name = methodDeclaration.getMethodName().getName();
+        //     CompileTimeErrors.add(methodDeclaration.getLine(), "Redefinition of method " + name);
+        // }
+        String name = methodDeclaration.getMethodName().getName();
         try {
-            SymbolTable.top.put(methodItem);
+            SymbolTable.top.getItem(FieldSymbolTableItem.START_KEY + methodDeclaration.getMethodName().getName(), true);
+            CompileTimeErrors.add(methodDeclaration.getLine(), "Name of method " + name + " conflicts with a field's name");
             break;
-        } catch (ItemAlreadyExistsException e) {
-            String name = methodDeclaration.getMethodName().getName();
-            CompileErrors.add(methodDeclaration.getLine(), "Redefinition of method " + name);
+        } catch (ItemNotFoundException e) {
+            try {
+                SymbolTable.top.put(methodItem);
+                break;
+            } catch (ItemAlreadyExistsException e2) {
+                CompileTimeErrors.add(methodDeclaration.getLine(), "Redefinition of method " + name);
+            }
         }
 
         return null;
@@ -214,7 +241,7 @@ public class ASTTreePrinter extends Visitor<Void> {
             break;
         } catch (ItemAlreadyExistsException e) {
             String name = fieldDeclaration.getVarDeclaration().getVarName().getName();
-            CompileErrors.add(fieldDeclaration.getLine(), "Redefinition of field " + name);
+            CompileTimeErrors.add(fieldDeclaration.getLine(), "Redefinition of field " + name);
         }
 
         // fieldItem.setType(fieldDeclaration.getVarDeclaration().getType());
@@ -237,7 +264,7 @@ public class ASTTreePrinter extends Visitor<Void> {
             break;
         } catch (ItemAlreadyExistsException e) {
             String name = varDeclaration.getVarName().getName();
-            CompileErrors.add(varDeclaration.getLine(), "Redefinition of local variable " + name);
+            CompileTimeErrors.add(varDeclaration.getLine(), "Redefinition of local variable " + name);
         }
 
         return null;

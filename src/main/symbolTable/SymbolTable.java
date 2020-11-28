@@ -33,6 +33,10 @@ public class SymbolTable {
     public SymbolTable pre;
     private Map<String, SymbolTableItem> items;
 
+    public Map<String, SymbolTableItem> getItems() {
+        return items;
+    }
+
     public SymbolTable() {
         this(null);
     }
@@ -51,14 +55,14 @@ public class SymbolTable {
     public SymbolTableItem getItem(String key, Boolean searchCurrent) throws ItemNotFoundException {
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
         SymbolTable currentSymbolTable = this;
-        if(!searchCurrent) {
+        if (!searchCurrent) {
             visitedSymbolTables.add(this);
             currentSymbolTable = this.pre;
         }
-        while((currentSymbolTable != null) && (!visitedSymbolTables.contains(currentSymbolTable))) {
-            visitedSymbolTables.add( currentSymbolTable );
+        while ((currentSymbolTable != null) && (!visitedSymbolTables.contains(currentSymbolTable))) {
+            visitedSymbolTables.add(currentSymbolTable);
             SymbolTableItem symbolTableItem = currentSymbolTable.items.get(key);
-            if( symbolTableItem != null )
+            if (symbolTableItem != null)
                 return symbolTableItem;
             currentSymbolTable = currentSymbolTable.pre;
         }

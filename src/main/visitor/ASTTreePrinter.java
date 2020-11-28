@@ -18,7 +18,7 @@ import main.ast.nodes.statement.loop.ContinueStmt;
 import main.ast.nodes.statement.loop.ForStmt;
 import main.ast.nodes.statement.loop.ForeachStmt;
 
-public class ASTTreePrinter extends Visitor<Void> {
+public class ASTTreePrinter implements Visitor {
 
     @Override
     public Void visit(Program program) {
