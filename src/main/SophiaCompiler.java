@@ -8,7 +8,7 @@ import parsers.SophiaParser;
 import main.visitor.ASTTreePrinter;
 import main.visitor.NameAnalyzer;
 import main.visitor.NameAnalyzer2;
-import main.compilerError.CompileTimeErrors;
+import main.compileError.CompileTimeErrors;
 
 public class SophiaCompiler {
     public void compile(CharStream textStream) {
@@ -20,7 +20,7 @@ public class SophiaCompiler {
         program.accept(new NameAnalyzer());
         program.accept(new NameAnalyzer2());
         if (CompileTimeErrors.hasErrors()) {
-            CompileTimeErrors.print();
+            CompileTimeErrors.printErrors();
         } else {
             program.accept(new ASTTreePrinter());
         }

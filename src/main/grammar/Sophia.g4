@@ -66,7 +66,7 @@ method
     locals [Type t]
     : 
     DEF (type { $t = type.t; } | VOID { $t = new NullType(); } ) 
-    identifier { $dec = new MethodDeclaration($identifier, $t); $dec.setLine($DEF.getLine()); }
+    identifier { $dec = new MethodDeclaration($identifier.id, $t); $dec.setLine($DEF.getLine()); }
     LPAR 
     (methodArguments { $dec.setArgs($methodArguments.decs); } ) 
     RPAR LBRACE methodBody 
@@ -75,7 +75,7 @@ method
 
 constructor returns [ConstructorDeclaration dec]
     : 
-    DEF identifier { $dec = new ConstructorDeclaration($identifier); $dec.setLine($DEF.getLine()); }
+    DEF identifier { $dec = new ConstructorDeclaration($identifier.id); $dec.setLine($DEF.getLine()); }
     LPAR 
     (methodArguments { $dec.setArgs($methodArguments.decs); } ) 
     RPAR LBRACE methodBody 
@@ -96,8 +96,8 @@ type returns [Type t]
     functionPointerType { $t = $functionPointerType.t; } | 
     classType { $t = $classType.t; };
 
-classType returns[ClassType ct]
-    : identifier { $ct = identifier.id; };
+classType returns[ClassType t]
+    : identifier { $t = identifier.id; };
 
 listType returns [ListType t]
     : 
@@ -156,26 +156,26 @@ statement returns [Statement stmt]
     returnStatement { $stmt = $returnStatement.stmt; } | 
     block { $stmt = $block.stmt; } ;
 
-block [BlockStmt stmt]
+block returns [BlockStmt stmt]
     :
     LBRACE { $stmt = new BlockStmt(); $stmt.setLine($LBRACE.getLine()); } 
     (statement { $stmt.add($statement.stmt); } )* 
     RBRACE;
 
-assignmentStatement [AssignmentStatement stmt]
+assignmentStatement returns [AssignmentStatement stmt]
     : assignment SEMICOLLON
     { 
         $stmt = new AssignmentStatement($assignment.lVal, $assignment.rVal); 
         $stmt.setLine($assignment.line); 
     };
 
-assignment [Expression lVal, Expression rVal, int line]
+assignment returns [Expression lVal, Expression rVal, int line]
     : 
     orExpression { $lVal = $orExpression.exp; } 
     ASSIGN { $line = $ASSIGN.getLine(); }
     expression { $rVal = $expression.exp; };
 
-printStatement [PrintStmt stmt]
+printStatement returns [PrintStmt stmt]
     : 
     PRINT LPAR expression RPAR SEMICOLLON
     { $stmt = new PrintStmt($expression.exp); $stmt.setLine($PRINT.getLine()); } ;
@@ -241,13 +241,13 @@ forStatement returns [ForStmt stmt]
     : FOR LPAR 
     { $stmt = new ForStmt(); $stmt.setLine($FOR.getLine()); }
     (
-        initStmt = assignment { $stmt.setInitialize($initStmt.stmt); }
+        initStmt = assignment { $stmt.setInitialize(new AssignmentStmt($initStmt.lVal, $initStmt.rVal)); }
     )? SEMICOLLON 
     (
         expression { $stmt.setInitialize($expression.exp); }
     )? SEMICOLLON 
     (
-        updateStmt = assignment { $stmt.setUpdate($updateStmt.stmt); }
+        updateStmt = assignment { $stmt.setUpdate(new AssignmentStmt($updateStmt.lVal, $updateStmt.rVal)); }
     )? RPAR 
     bodyStmt = statement 
     { $stmt.setBody($bodyStmt.stmt); };
@@ -255,10 +255,10 @@ forStatement returns [ForStmt stmt]
 foreachStatement returns [ForeachStmt stmt]
     : FOREACH LPAR identifier IN expression RPAR
     { 
-        $stmt = new ForeachStmt($identifier, $expression);
+        $stmt = new ForeachStmt($identifier.id, $expression.exp);
         $stmt.setLine($FOREACH.getLine()):
     }
-    statement { $stmt.setBody($statement); };
+    statement { $stmt.setBody($statement.stmt); };
 
 ifStatement returns [ConditionalStmt stmt]
     : IF LPAR expression RPAR ifStmt = statement
@@ -417,17 +417,17 @@ otherExpression returns [Expression exp]
     : 
     THIS { $exp = new ThisClass(); $exp.setLine($THIS.getLine()); } | 
     newExpression | 
-    values { $exp = $value.val; } | 
+    values { $exp = $values.val; } |
     identifier { $exp = $identifier.id; } | 
     LPAR (expression { $exp = $expression.exp; } ) RPAR;
 
-newExpression [NewClassInstance nci]
+newExpression returns [NewClassInstance nci]
     : 
     NEW classType 
     LPAR 
     methodCallArguments 
     RPAR 
-    { $nci = new NewClassInstance($classType.ct, $methodCallArguments.exps);  } ;
+    { $nci = new NewClassInstance($classType.t, $methodCallArguments.exps);  } ;
 
 values returns [Value val]
     : 

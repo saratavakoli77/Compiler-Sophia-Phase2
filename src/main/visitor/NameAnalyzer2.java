@@ -26,34 +26,32 @@ import main.symbolTable.items.FieldSymbolTableItem;
 import main.symbolTable.items.LocalVariableSymbolTableItem;
 import main.symbolTable.items.MethodSymbolTableItem;
 import main.symbolTable.items.SymbolTableItem;
-import main.symbolTable.exception.ItemAlreadyExistsException;
-import main.symbolTable.exception.ItemNotFoundException;
+import main.symbolTable.exceptions.ItemAlreadyExistsException;
+import main.symbolTable.exceptions.ItemNotFoundException;
 
 import main.compileError.CompileTimeErrors;
 
-public class NameAnalyzer2 implements Visitor {
+public class NameAnalyzer2 extends Visitor {
 
     @Override
     public Void visit(Program program) {
-        HashMap<String, SymbolTableItem> items = SymbolTable.root.getSymbolTableItems();
-
         ArrayList<ClassDeclaration> classes = program.getClasses();
         
-        Map<String, SymbolTableItem> allItems = SymbolTable.getItems();
+        Map<String, SymbolTableItem> allItems = SymbolTable.root.getItems();
 
         if (classes != null) {
-            for (ClassDeclaration class : classes) {
+            for (ClassDeclaration sophiaClass : classes) {
                 HashSet<String> visitedSet = new HashSet<String>();
-                String className = class.getClassName().getName();
+                String className = sophiaClass.getClassName().getName();
                 visitedSet.add(ClassSymbolTableItem.START_KEY + className);
-                String parentName = class.getParentClassName().getName();
+                String parentName = sophiaClass.getParentClassName().getName();
                 while (parentName != null) {
                     ClassSymbolTableItem parent = (ClassSymbolTableItem) allItems.get(ClassSymbolTableItem.START_KEY + parentName);
                     if (parent == null) {
                         break;
                     }
                     if (parentName.equals(className) || visitedSet.contains(ClassSymbolTableItem.START_KEY + parentName)) {
-                        CompileTimeErrors.add(class.getLine(),"Class " + className + " is in an inheritance cycle");
+                        CompileTimeErrors.addError(sophiaClass.getLine(),"Class " + className + " is in an inheritance cycle");
                         break;
                     }
                     visitedSet.add(ClassSymbolTableItem.START_KEY + parentName);
@@ -64,8 +62,8 @@ public class NameAnalyzer2 implements Visitor {
         } 
         //main ?!
         if (classes != null) {
-            for (ClassDeclaration class : classes) {
-                class.accept(this);
+            for (ClassDeclaration sophiaClass : classes) {
+                sophiaClass.accept(this);
             }
         }
     
@@ -76,13 +74,13 @@ public class NameAnalyzer2 implements Visitor {
     public Void visit(ClassDeclaration classDeclaration) {
         Identifier parentClassName = classDeclaration.getParentClassName();
         if (parentClassName == null) {
-            return;
+            return null;
         }
 
         HashSet<String> visitedSet = new HashSet<String>();
         ArrayList<FieldDeclaration> fields = classDeclaration.getFields();
 
-        Map<String, SymbolTableItem> allItems = SymbolTable.getItems();
+        Map<String, SymbolTableItem> allItems = SymbolTable.root.getItems();
 
         if (fields != null) {
             for (FieldDeclaration field : fields) {
@@ -94,7 +92,7 @@ public class NameAnalyzer2 implements Visitor {
                     Map<String, SymbolTableItem> parentItems = parent.getClassSymbolTable().getItems();
                     String fieldName = field.getVarDeclaration().getVarName().getName();
                     if (parentItems.get(FieldSymbolTableItem.START_KEY + fieldName) != null) {
-                        CompileTimeErrors.add(field.getLine(), "Redefinition of field " + fieldName);
+                        CompileTimeErrors.addError(field.getLine(), "Redefinition of field " + fieldName);
                         break;
                     }
                     visitedSet.add(ClassSymbolTableItem.START_KEY + parentName);
@@ -110,7 +108,7 @@ public class NameAnalyzer2 implements Visitor {
             methods.add(constructor);    
         }
 
-        HashSet<String> visitedSet = new HashSet<String>();
+        visitedSet = new HashSet<String>();
         
         if (methods != null) {
             for (MethodDeclaration method : methods) {
@@ -122,11 +120,11 @@ public class NameAnalyzer2 implements Visitor {
                     Map<String, SymbolTableItem> parentItems = parent.getClassSymbolTable().getItems();
                     String methodName = method.getMethodName().getName();
                     if (parentItems.get(FieldSymbolTableItem.START_KEY + methodName) != null) {
-                        CompileTimeErrors.add(method.getLine(), "Name of method " + methodName + " conflicts with a field's name");
+                        CompileTimeErrors.addError(method.getLine(), "Name of method " + methodName + " conflicts with a field's name");
                         break;
                     }
                     if (parentItems.get(MethodSymbolTableItem.START_KEY + methodName) != null) {
-                        CompileTimeErrors.add(method.getLine(), "Redefinition of method " + methodName);
+                        CompileTimeErrors.addError(method.getLine(), "Redefinition of method " + methodName);
                         break;
                     }
                     visitedSet.add(ClassSymbolTableItem.START_KEY + parentName);
@@ -170,14 +168,13 @@ public class NameAnalyzer2 implements Visitor {
 
         MethodSymbolTableItem methodItem = new MethodSymbolTableItem(constructorDeclaration);
         methodItem.setMethodSymbolTable(SymbolTable.top);
-        SymbolTable.pop()
+        SymbolTable.pop();
 
         try {
             SymbolTable.top.put(methodItem);
-            break;
         } catch (ItemAlreadyExistsException e) {
             String name = constructorDeclaration.getMethodName().getName();
-            CompileTimeErrors.add(constructorDeclaration.getLine(), "Redefinition of method " + name);
+            CompileTimeErrors.addError(constructorDeclaration.getLine(), "Redefinition of method " + name);
         }
 
         return null;
@@ -211,23 +208,22 @@ public class NameAnalyzer2 implements Visitor {
             }
         }
 
-        ArrayList<Statement> bodyStmts = handlerDeclaration.getBody();
+        ArrayList<Statement> bodyStmts = methodDeclaration.getBody();
         if (bodyStmts != null) {
             for (Statement bodyStmt : bodyStmts) {
                 bodyStmt.accept(this);
             }
         }
 
-        MethodSymbolTableItem methodItem = new MethodSymbolTableItem(constructorDeclaration);
+        MethodSymbolTableItem methodItem = new MethodSymbolTableItem(methodDeclaration);
         methodItem.setMethodSymbolTable(SymbolTable.top);
-        SymbolTable.pop()
+        SymbolTable.pop();
 
         try {
             SymbolTable.top.put(methodItem);
-            break;
         } catch (ItemAlreadyExistsException e) {
             String name = methodDeclaration.getMethodName().getName();
-            CompileTimeErrors.add(methodDeclaration.getLine(), "Redefinition of method " + name);
+            CompileTimeErrors.addError(methodDeclaration.getLine(), "Redefinition of method " + name);
         }
 
         return null;
@@ -246,10 +242,9 @@ public class NameAnalyzer2 implements Visitor {
 
         try {
             SymbolTable.top.put(fieldItem);
-            break;
         } catch (ItemAlreadyExistsException e) {
             String name = fieldDeclaration.getVarDeclaration().getVarName().getName();
-            CompileTimeErrors.add(fieldDeclaration.getLine(), "Redefinition of field " + name);
+            CompileTimeErrors.addError(fieldDeclaration.getLine(), "Redefinition of field " + name);
         }
 
         // fieldItem.setType(fieldDeclaration.getVarDeclaration().getType());
@@ -265,14 +260,13 @@ public class NameAnalyzer2 implements Visitor {
             varName.accept(this);
         }
 
-        LocalVariableSymbolTableItem localVariableItem = new FieldSymbolTableItem(varDeclaration);
+        LocalVariableSymbolTableItem localVariableItem = new LocalVariableSymbolTableItem(varDeclaration);
 
         try {
             SymbolTable.top.put(localVariableItem);
-            break;
         } catch (ItemAlreadyExistsException e) {
             String name = varDeclaration.getVarName().getName();
-            CompileTimeErrors.add(varDeclaration.getLine(), "Redefinition of local variable " + name);
+            CompileTimeErrors.addError(varDeclaration.getLine(), "Redefinition of local variable " + name);
         }
 
         return null;
@@ -374,17 +368,17 @@ public class NameAnalyzer2 implements Visitor {
     @Override
     public Void visit(ForeachStmt foreachStmt) {
 
-        Identifier variable = ForeachStmt.getVariable();
+        Identifier variable = foreachStmt.getVariable();
         if (variable != null) {
             variable.accept(this);
         }
 
-        Expression list = ForeachStmt.getList();
+        Expression list = foreachStmt.getList();
         if (list != null) {
             list.accept(this);
         }
 
-        Statement body = ForeachStmt.getBody();
+        Statement body = foreachStmt.getBody();
         if (body != null) {
             body.accept(this);
         }
@@ -472,7 +466,7 @@ public class NameAnalyzer2 implements Visitor {
             instance.accept(this);
         }
 
-        Expression index = arrayCall.getIndex();
+        Expression index = listAccessByIndex.getIndex();
         if (index != null) {
             index.accept(this);
         }

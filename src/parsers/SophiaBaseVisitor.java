@@ -1,4 +1,4 @@
-// Generated from C:/Users/amirp/Desktop/Files/University/Term 7/Compiler-TA/Sophia-Phases/2/Sophia-Phase2/src/main/grammar\Sophia.g4 by ANTLR 4.8
+// Generated from /home/ghazal/Documents/7th_Semester/compiler/CAs/phase2/Sophia-Phase2/src/main/grammar/Sophia.g4 by ANTLR 4.8
 package parsers;
 
     import main.ast.types.*;

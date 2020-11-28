@@ -18,17 +18,20 @@ import main.ast.nodes.statement.loop.ContinueStmt;
 import main.ast.nodes.statement.loop.ForStmt;
 import main.ast.nodes.statement.loop.ForeachStmt;
 
-public class ASTTreePrinter implements Visitor {
+import java.util.*;
+
+public class ASTTreePrinter extends Visitor {
 
     @Override
     public Void visit(Program program) {
         System.out.println(program.toString());
         ArrayList<ClassDeclaration> classes = program.getClasses();
         if (classes != null) {
-            for (ClassDeclaration class : classes) {
-                class.accept(this);
+            for (ClassDeclaration sophiaClass : classes) {
+                sophiaClass.accept(this);
             }
         }
+
         //main ?!
         return null;
     }
@@ -130,7 +133,7 @@ public class ASTTreePrinter implements Visitor {
             }
         }
 
-        ArrayList<Statement> bodyStmts = handlerDeclaration.getBody();
+        ArrayList<Statement> bodyStmts = methodDeclaration.getBody();
         if (bodyStmts != null) {
             for (Statement bodyStmt : bodyStmts) {
                 bodyStmt.accept(this);
@@ -269,17 +272,17 @@ public class ASTTreePrinter implements Visitor {
     public Void visit(ForeachStmt foreachStmt) {
         System.out.println(foreachStmt.toString());
 
-        Identifier variable = ForeachStmt.getVariable();
+        Identifier variable = foreachStmt.getVariable();
         if (variable != null) {
             variable.accept(this);
         }
 
-        Expression list = ForeachStmt.getList();
+        Expression list = foreachStmt.getList();
         if (list != null) {
             list.accept(this);
         }
 
-        Statement body = ForeachStmt.getBody();
+        Statement body = foreachStmt.getBody();
         if (body != null) {
             body.accept(this);
         }
@@ -373,7 +376,7 @@ public class ASTTreePrinter implements Visitor {
             instance.accept(this);
         }
 
-        Expression index = arrayCall.getIndex();
+        Expression index = listAccessByIndex.getIndex();
         if (index != null) {
             index.accept(this);
         }
