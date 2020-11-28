@@ -3,7 +3,7 @@ package main.compileError;
 import java.util.*;
 
 public class CompileErrors {
-    private static HashMap<Integer, ArrayList<String>> errors = new HashMap<>();;
+    private static HashMap<Integer, ArrayList<String>> errors = new HashMap<>();
     
     public static boolean hasErrors() {
         return !errors.isEmpty();
